@@ -165,7 +165,50 @@ const NinaSound=(()=>{
 })();
 </script><script>'use strict';
 const $=id=>document.getElementById(id), fmt=n=>n.toLocaleString('en-GB');
-const LINES=['“Welcome to the table. Shall we deal?”','“Well played. Ready for the next match?”','“Another match is yours. Let us keep playing.”','“That was a strong performance. One more match?”','“You won the evening. Congratulations!”'];
+const LINES=["“Welcome to the table. Shall we deal?”", "“You won the first match. Let’s see if you can keep this up.”", "“Another match, another look. You’re on quite a run.”", "“One more match, and the evening is yours. I’d better concentrate.”", "“You won the evening. I have to admit, you earned that smile.”"];
+const PHOTO_RETURN_LINE="“Back to a familiar look. I’m rather pleased with that comeback.”";
+const NINA_HAND_LINES={
+  "win": [
+    "Those chips look better on my side.",
+    "Careful. I’m starting to enjoy this.",
+    "One for me. Shall we make it two?",
+    "You brought the confidence. I brought the cards.",
+    "Keep that poker face. You might need it.",
+    "I could get used to this.",
+    "No need to look so surprised.",
+    "Another hand? I’m feeling lucky.",
+    "I’ll take the pot. You can keep the suspense.",
+    "That was worth waiting for.",
+    "You’re awfully quiet over there.",
+    "A little patience pays rather nicely.",
+    "Shall I stack these slowly, or would that be rude?"
+  ],
+  "loss": [
+    "Well played. Don’t get too comfortable.",
+    "Enjoy those chips. I’ll want them back.",
+    "All right, that one was yours.",
+    "You’ve got my attention now.",
+    "Nice hand. Let’s see you do it again.",
+    "You’re making this interesting.",
+    "That smile suits you. Let’s see how long it lasts.",
+    "A small setback. Deal again.",
+    "I walked right into that one.",
+    "I should have trusted my first instinct.",
+    "You hid that hand rather well.",
+    "I had a better ending in mind.",
+    "Fair enough. Let me shuffle away the evidence."
+  ]
+};
+const lineBags={win:[],loss:[]},lastHandLine={win:null,loss:null};
+function nextNinaLine(outcome){
+  const bag=lineBags[outcome];
+  if(!bag.length){
+    bag.push(...NINA_HAND_LINES[outcome]);
+    for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
+    if(bag[0]===lastHandLine[outcome])[bag[0],bag[1]]=[bag[1],bag[0]];
+  }
+  const line=bag.shift();lastHandLine[outcome]=line;return '“'+line+'”';
+}
 const SAVE_KEY='nina-poker-lounge-v1';
 let stage=0, highest=0, seriesState='', game=new Poker.Game(), busy=false, timer=null, savedMessage='';
 let finishedResult=null;
@@ -227,9 +270,9 @@ function finishHand(){const r=game.result;if(!r||finishedResult===r)return;finis
   const resultDelay=r.winner===0?1.4:r.winner===1?.9:0;
   if(r.winner!==null)NinaSound.play(r.winner===0?'win':'lose');
   if(game.stacks[1]===0){stage++;highest=Math.max(highest,stage);seriesState=stage===4?'won':'up';$('speech').textContent=LINES[stage];setPortrait(true,resultDelay);}
-  else if(game.stacks[0]===0){if(stage>0){stage--;seriesState='down';$('speech').textContent='“This match is mine. Let us try again.”';setPortrait(true,resultDelay);}else{seriesState='lost';$('speech').textContent='“The cards were kind to me. A rematch?”';}}
-  else if(r.winner===0)$('speech').textContent=r.reason==='fold'?'“I will let you have this one. Nice bet.”':'“Nice hand. The next deal should be interesting.”';
-  else if(r.winner===1)$('speech').textContent='“I will keep this pot. Shall we continue?”';
+  else if(game.stacks[0]===0){if(stage>0){stage--;seriesState='down';$('speech').textContent=PHOTO_RETURN_LINE;setPortrait(true,resultDelay);}else{seriesState='lost';$('speech').textContent='“The cards were kind to me. A rematch?”';}}
+  else if(r.winner===0)$('speech').textContent=nextNinaLine('loss');
+  else if(r.winner===1)$('speech').textContent=nextNinaLine('win');
   else $('speech').textContent='“Matching hands. Let us split the pot.”';
   save();paint();
 }
@@ -278,6 +321,7 @@ async function nextHand(){
 }
 function reset(){
   clearTimeout(timer);scheduleToken++;animationEpoch++;NinaSound.stop();finishedResult=null;busy=false;presenting=false;shuffling=false;freshDeal=null;shownHoles=[0,0];shownBoard=0;
+  lineBags.win.length=0;lineBags.loss.length=0;lastHandLine.win=null;lastHandLine.loss=null;
   stage=0;highest=0;seriesState='';game=new Poker.Game();savedMessage='';$('speech').textContent=LINES[0];setPortrait();save();paint();
 }
 function showModal(title,html){$('modalTitle').textContent=title;$('modalBody').innerHTML=html;if(!$('modal').open)$('modal').showModal();}
